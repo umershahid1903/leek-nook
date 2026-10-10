@@ -1,6 +1,6 @@
 {
   "v": 2,
-  "cursor": 1791653612,
+  "cursor": 1791653644,
   "heartbeat": "2026-10",
   "bells": {
     "o0FklpaIQh0eL2Liu9dXOo": {
@@ -26,14 +26,8 @@
       "firedAt": 0
     },
     "wjbN8WihsExze_8pDb0wFx": {
-      "sealed": "{\"v\":1,\"e\":\"BGI3cRv4fC-TMT2OYlU8IqwuvZRFBrryWG1ZjlQ1ryVjW1e2Lua_UGQMYlv2FUc3oPp-QSXi5LaeWXboL8_MVPg\",\"i\":\"l9qCqCW8vYEmNnRn\",\"c\":\"k8rFtmEpwmbspdltMYPstQpB2EEKmrIEJgHx6LS3a72XA-CEkHVv9FHeFHXF39efDQHxAwi0uYS7y78S6R7RI85tezXmOt1Ac-I74F_nbnla333NA6OKvZwMKVJ6cMMZVhNJqpRnl5b8IGvplFzhbtCko0kwQ_-UztbedzkXzGnrcYATAtR1QmGcqg4GakKsSR17tfKS8Nw1_gKqW2olX6G4vCu9XHpb9ja3eKCLslXSPAs8RhmW_SiVx77NhPv92SY3agFMpKZueGlok-A6xPuO813FateRbt6WYY6ehxDA_1Z4L_Jpa6nAulAPpt9CKNVJI10u4F3xezIKdDEoy-z0iDNHyUSKvKF344kPniYe1g_8YEyFson1pB31Q0nPtyQRZj-Hg5n6xFtJj0m0aFJk7_KHXCOAzG9H84HAVRm92ujJoA4qVNCm4EP1602TzGPgu8kRSDNT1WgulTJ1qmgTAFFmFjjwwhjoqZ3OEZWRcysdFisRr4mclbny-exZDOF6wLgrOZo_kZuCMW-0XdsLwjKJuvucKdHts544R6t9R0HhOmWlU2PIfZJMQcVkFv6f4sAEV3Ens0rt0HJKaStHfCk9yrjCrlE-jWLW8VLxbefIaCkfVtQBpD_KjHEcsqOKs-iSJiSr\"}",
-      "ep": "09aw-n9JGHDdVzfN",
-      "at": 1791653612071,
-      "target": 30000000,
-      "confirmed": 1791653627424,
-      "armed": true,
-      "watchFrom": 1791653612071,
-      "firedAt": 0
+      "at": 1791653644160,
+      "gone": true
     }
   }
 }
