@@ -24,6 +24,7 @@ cd bell && npm ci && cd ..
 node tests/bell.e2e.mjs   # real push through Google FCM into a headless Chrome, test keys and topic
 node tests/screens.mjs    # phone-size screenshots, light and dark → tests/out/
 node tests/perf.mjs       # 6× slower CPU, counts tasks over 50 ms
+node tests/live.e2e.mjs   # LIVE: hangs a test bell on github.io, runs the real watch, takes it down
 node tests/serve.mjs      # serve at http://localhost:18777/leek-nook/
 ```
 
