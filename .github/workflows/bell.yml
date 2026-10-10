@@ -1,24 +1,42 @@
 name: night watch
 
-# Looks at CyberLeek every ~5 minutes (GitHub may run it a few minutes late)
-# and rings the phones that hung a bell. See bell/bell.mjs.
+# Looks at CyberLeek every ~5 minutes and rings the phones that hung a bell
+# (see bell/bell.mjs).
+#
+# Two clocks: GitHub's cron alone never fired in this repo's first two hours,
+# so every look also queues the next one behind the `pause` environment, whose
+# 4-minute wait timer holds the job without using a runner. The cron stays as a
+# second clock: if the chain ever stops, the next scheduled look restarts it.
 on:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
+    inputs:
+      chained:
+        description: Queued by the previous look (rests 4 minutes first)
+        type: boolean
+        default: false
 
 permissions:
   contents: write
   actions: write
 
-concurrency:
-  group: night-watch
-  cancel-in-progress: false
-
 jobs:
+  pause:
+    if: ${{ inputs.chained }}
+    runs-on: ubuntu-latest
+    environment: pause
+    steps:
+      - run: echo "rested"
+
   watch:
+    needs: pause
+    if: ${{ !cancelled() && needs.pause.result != 'failure' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    concurrency:
+      group: night-watch
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,14 +77,30 @@ jobs:
           git commit -qm "watch: update bells"
           git push -q || { git pull -q --rebase -X theirs && git push -q; }
 
-      # GitHub pauses schedules in repos idle for 60 days. Re-enabling the
-      # workflow during one hour a day keeps it awake; the monthly heartbeat
-      # commit to bell-state is the second guard.
+  next:
+    needs: watch
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      # One chain only: if another look is already waiting, this one ends here.
+      - name: queue the next look
+        run: |
+          waiting=$(gh run list -R "$REPO" --workflow bell.yml --limit 30 --json databaseId,status \
+            --jq '[.[] | select(.databaseId != ${{ github.run_id }}) | select(.status == "waiting" or .status == "queued" or .status == "pending" or .status == "requested")] | length')
+          if [ "$waiting" = "0" ]; then
+            gh workflow run bell.yml -R "$REPO" -f chained=true && echo "next look queued"
+          else
+            echo "a look is already waiting ($waiting)"
+          fi
+
+      # GitHub pauses schedules in repos idle for 60 days; re-enabling the
+      # workflow during one hour a day keeps the cron clock awake too.
       - name: stay awake
-        if: github.event_name == 'schedule'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "$(date -u +%H)" = "03" ]; then
-            gh api -X PUT "repos/${{ github.repository }}/actions/workflows/bell.yml/enable" && echo "poked"
+            gh api -X PUT "repos/$REPO/actions/workflows/bell.yml/enable" && echo "poked"
           fi
