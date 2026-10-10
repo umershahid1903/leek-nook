@@ -4,14 +4,8 @@
   "heartbeat": "2026-10",
   "bells": {
     "wmV9TSGdsOAFUDuA1rNmDrmj": {
-      "sealed": "{\"v\":1,\"e\":\"BKfRBUWSgA-84_I23wIMyQ9VPpI9aMzw6ZRwoeUYlZ36o-PRS7UT4UerxRyRigrCfj4rDaPRqInHU_co3Y4g3sU\",\"i\":\"AeypdVc-K1wd7X_7\",\"c\":\"S0a-UyEZxaiy-NK5EshWjPLlrjcY6LH1HxybuXoaGBuAZPRdFUVERrBltwDR45vokh2EDwrE5gH29_GkUr8L3TaL_nThprvmR_UHmlc85koIbg6CMYNT6GV8pfv5PRPI-gXk5jOi68X-f_-vEeQl3qEMqSeCHlTfaDXzVm8gZw2SCgqp7Spfc0ea3PCIQSCQVVY8vCUqqI5pE5AnWn1SOg7LYyVciMr-pgwYuQLFDd6unLp09j96-Bozt-sctRmTSEh4B_6t7a0JKd5DvJxLqhuJmPTL7ctpDzgI31KMF8fANVKtUyV0MHnFLmg7tMFntDE4RX6J-dEOrrQ_T_ggDTe_BFnS_QsaQhPEvlV06U5rfadJGDRCnRVvgNtuLhJoHXoXi2b9M6iN-Nzpq5myCnftL6ugmujxBUvxWdnntQiJtl3HhNnIHnFpDuadxx4FTlWElpPJLyo5XaPKz-Yt81JMlQanW99dvPK1pjGkKA3aq6ursmeqDrGqSR_Utzy1yTR6Ln6aBHXadAmF-Rnvfhe_P3WnWyBwHat1Qfk0B0DyenToJvpzXy1PyUgFP_3mAaIFlaCypzZ6EIfVGm3Buy8PmHrWGucPeH3XJS5S7h-JVFgfnuXNlnkm2U0\"}",
-      "ep": "QAQdQZzy9Mk9XTMU",
       "at": 1791649436651,
-      "target": 30000000,
-      "confirmed": 1791649488289,
-      "armed": true,
-      "watchFrom": 1791649436651,
-      "firedAt": 0
+      "gone": true
     },
     "3sfRG2H8llLEJrA5kg0L6HnY": {
       "at": 1791649499313,
