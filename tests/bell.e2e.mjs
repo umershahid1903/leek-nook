@@ -60,7 +60,7 @@ try {
 
   // 1. hang the bell from the page
   await click('#hangBtn');
-  try { await p.waitFor(`JSON.parse(localStorage.getItem('ln.bell') || '{}').hung === true`, 15000); }
+  try { await p.waitFor(`JSON.parse(localStorage.getItem('ln.bell') || '{}').hung === true`, 50000); }
   catch (e) { console.log('btn:', await p.eval(`document.getElementById('hangBtn').outerHTML`), 'perm:', await p.eval('Notification.permission'), 'toast:', await p.eval(`document.getElementById('toast').textContent`), '\nlogs:', p.logs.join('\n')); throw e; }
   ok((await status()).startsWith('status wait'), 'tapping “Hang the bell” posts a sealed note and waits', await status());
 

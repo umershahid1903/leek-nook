@@ -1,7 +1,7 @@
 import CONFIG from './config.js';
 import { seal, b64u } from './mailbox.js';
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const LIVE_EVERY = 10_000;
 const $ = (id) => document.getElementById(id);
 
@@ -251,6 +251,9 @@ async function getSubscription(create) {
   return sub;
 }
 
+// A brand-new Chrome profile can take a while to register for push; never spin forever.
+const within = (ms, promise, what) => Promise.race([promise, new Promise((_, no) => setTimeout(() => no(new Error(what + ' took too long')), ms))]);
+
 async function post(note) {
   const body = await seal(note, CONFIG.mailboxPublicKey);
   const r = await fetch(`https://ntfy.sh/${CONFIG.mailboxTopic}`, { method: 'POST', body });
@@ -264,8 +267,8 @@ async function hang() {
   try {
     const perm = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission;
     if (perm !== 'granted') { paintBell(); if (perm === 'default') toast('The bell needs notifications to ring you.'); return; }
-    const sub = await getSubscription(true);
-    await post({ kind: 'hang', device, sub: sub.toJSON(), target, at: Date.now() });
+    const sub = await within(45_000, getSubscription(true), 'signing up for push');
+    await within(20_000, post({ kind: 'hang', device, sub: sub.toJSON(), target, at: Date.now() }), 'the mailbox');
     saveBell({ hung: true, postedAt: Date.now(), endpoint: sub.endpoint, target });
     $('bellIco').classList.remove('ring'); void $('bellIco').offsetWidth; $('bellIco').classList.add('ring');
     toast('Bell hung. The night watch will say hello soon.');
@@ -306,6 +309,7 @@ function chooseTarget(t) {
   store.set('target', t);
   paintBell();
   paintBar();
+  if (market) checkLocalRing(market);
   if (!bell.hung) return;
   clearTimeout(retargetTimer);
   retargetTimer = setTimeout(async () => {
