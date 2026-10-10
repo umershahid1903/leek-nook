@@ -9,7 +9,7 @@ import { launch } from './cdp.mjs';
 import { serve } from './serve.mjs';
 import CONFIG from '../config.js';
 import { makeMailboxKeys, seal } from '../mailbox.js';
-import { runWatch, freshState, readMarket } from '../bell/bell.mjs';
+import { runWatch, freshState, readMarket, readSupply } from '../bell/bell.mjs';
 
 const webpush = createRequire(import.meta.url)('../bell/node_modules/web-push');
 const vapid = webpush.generateVAPIDKeys();
@@ -31,8 +31,15 @@ const state = freshState();
 
 try {
   // 0. the real market, read the way the night watch reads it
-  const live = await readMarket(CONFIG);
-  ok(live.mc > 1e5 && live.mc < 1e10 && live.candles.length > 30, 'night watch reads the live market', `cap $${(live.mc / 1e6).toFixed(2)}M, ${live.candles.length} candles`);
+  const chain = await readSupply(CONFIG);
+  const live = await readMarket(CONFIG, fetch, chain);
+  const ds = (await (await fetch(`https://api.dexscreener.com/tokens/v1/solana/${CONFIG.mint}`)).json())[0];
+  ok(Number(chain) > 7e8 && Number(chain) < 1e9, 'reads the exact supply from the Solana blockchain', chain);
+  ok(live.supplySource === 'chain' && Math.abs(live.mc - live.price * Number(chain)) < 1, 'market cap = price × on-chain supply', `$${live.mc.toFixed(0)} = ${live.price} × ${chain}`);
+  ok(Math.abs(live.mc / ds.marketCap - 1) < 0.005 && live.candles.length > 30, 'agrees with DexScreener within 0.5%', `ours $${live.mc.toFixed(0)} vs DexScreener $${ds.marketCap} (${(100 * (live.mc / ds.marketCap - 1)).toFixed(3)}%)`);
+  const noRpc = (u, o) => String(u).includes('solana.com') ? Promise.reject(new Error('rpc down')) : fetch(u, o);
+  const r0 = await runWatch(cfg, freshState(), { ...deps, fetch: (u, o) => String(u).includes('ntfy.sh') ? fetch(u, o) : noRpc(u, o), lastSupply: chain });
+  ok(r0.log.some((l) => l.includes('using the last known one')) && r0.market?.supplySource === 'chain', 'if the blockchain RPC is down, the watch uses the last known supply', r0.log[0]);
 
   await b.send('Browser.grantPermissions', { origin, permissions: ['notifications'] });
   const p = await b.newPage();

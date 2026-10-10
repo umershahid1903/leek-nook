@@ -9,6 +9,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import { dirname, join } from 'node:path';
 import config from '../config.js';
 import { open } from '../mailbox.js';
 
@@ -29,23 +30,39 @@ export function freshState() {
   return { v: 1, cursor: 0, heartbeat: '', bells: {} };
 }
 
-export async function readMarket(cfg, fetchImpl = fetch) {
+// The exact token count, straight from the Solana blockchain. The public RPC
+// refuses web pages, so this job reads it and publishes it (supply.json on
+// bell-state) for the site. Mint authority is gone: it can only shrink (burns).
+export async function readSupply(cfg, fetchImpl = fetch) {
+  const r = await fetchImpl('https://api.mainnet-beta.solana.com', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getTokenSupply', params: [cfg.mint, { commitment: 'confirmed' }] }),
+  });
+  if (!r.ok) throw new Error('solana rpc ' + r.status);
+  const v = (await r.json()).result?.value;
+  if (!(Number(v?.uiAmountString) > 0)) throw new Error('solana rpc: no supply');
+  return v.uiAmountString;
+}
+
+// Market cap = DexScreener's live price x the on-chain supply (when known).
+export async function readMarket(cfg, fetchImpl = fetch, chainSupply = null) {
   const r = await fetchImpl(`https://api.dexscreener.com/tokens/v1/${cfg.chain}/${cfg.mint}`);
   if (!r.ok) throw new Error('dexscreener ' + r.status);
   const best = (await r.json())
     .filter((p) => p.marketCap > 0 && Number(p.priceUsd) > 0)
     .sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
   if (!best) throw new Error('dexscreener: no priced pair');
-  const mc = best.marketCap;
   const price = Number(best.priceUsd);
-  const supply = mc / price;
+  const onChain = Number(chainSupply) > 0;
+  const supply = onChain ? Number(chainSupply) : best.marketCap / price;
+  const mc = price * supply;
   let candles = [];
   try {
     const g = await fetchImpl(`https://api.geckoterminal.com/api/v2/networks/${cfg.chain}/pools/${best.pairAddress}/ohlcv/minute?aggregate=1&limit=90&currency=usd`, { headers: { accept: 'application/json' } });
     // Candle bodies only (open/close), so a one-trade wick doesn't ring the bell.
     if (g.ok) candles = (await g.json()).data.attributes.ohlcv_list.map(([t, o, , , c]) => ({ t: t * 1000, top: Math.max(o, c) * supply }));
   } catch { /* the current cap alone still works */ }
-  return { mc, price, supply, candles };
+  return { mc, price, supply, supplySource: onChain ? 'chain' : 'dexscreener', candles };
 }
 
 export async function readMailbox(cfg, since, fetchImpl = fetch) {
@@ -139,11 +156,16 @@ export async function runWatch(cfg, state, deps) {
     }
   } catch (e) { log.push('mailbox unreachable: ' + e.message); }
 
-  // 2. the market
+  // 2. the market (price x the on-chain supply; the last known supply if the RPC is down)
+  let supply = deps.supply ?? null;
+  if (!deps.market && supply === null) {
+    try { supply = await readSupply(cfg, fetchImpl); }
+    catch (e) { supply = deps.lastSupply ?? null; log.push(`supply from the chain unavailable (${e.message}), using ${supply ? 'the last known one' : "DexScreener's"}`); }
+  }
   let market = null;
-  try { market = deps.market ? await deps.market() : await readMarket(cfg, fetchImpl); }
+  try { market = deps.market ? await deps.market() : await readMarket(cfg, fetchImpl, supply); }
   catch (e) { log.push('market unreachable: ' + e.message); }
-  if (market) log.push(`market cap ${money(market.mc)} (${market.candles.length} candles)`);
+  if (market) log.push(`market cap ${money(market.mc)} = price ${market.price} x ${Math.round(market.supply).toLocaleString('en-US')} tokens (${market.supplySource ?? 'test'}) · ${market.candles.length} candles`);
 
   // 3. the bells
   for (const [device, b] of Object.entries(state.bells)) {
@@ -180,22 +202,30 @@ export async function runWatch(cfg, state, deps) {
 
   const live = Object.values(state.bells).filter((b) => !b.gone);
   log.push(`bells: ${live.length} hung, ${live.filter((b) => b.armed).length} armed · notes ${tally.notes} (junk ${tally.junk}) · confirmed ${tally.hung} · rang ${tally.rung} · gone ${tally.gone} · failed ${tally.failed}`);
-  return { log, tally, market };
+  return { log, tally, market, supply };
 }
 
 async function main() {
   const file = process.env.STATE_FILE || 'state.json';
+  const supplyFile = join(dirname(file), 'supply.json');
   const state = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : freshState();
   const before = JSON.stringify(state);
+  const lastSupply = existsSync(supplyFile) ? JSON.parse(readFileSync(supplyFile, 'utf8')).supply : null;
   if (!process.env.MAILBOX_PRIVATE_JWK || !process.env.VAPID_PRIVATE_KEY) throw new Error('missing secrets MAILBOX_PRIVATE_JWK / VAPID_PRIVATE_KEY');
-  const { log } = await runWatch(config, state, {
+  const { log, supply } = await runWatch(config, state, {
     jwk: JSON.parse(process.env.MAILBOX_PRIVATE_JWK),
     vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
+    lastSupply,
   });
   for (const line of log) console.log(line);
   if (JSON.stringify(state) !== before) {
     writeFileSync(file, JSON.stringify(state, null, 2) + '\n');
     console.log('state changed');
+  }
+  // Published for the site; rewritten only when the chain's number changes (a burn).
+  if (supply && supply !== lastSupply) {
+    writeFileSync(supplyFile, JSON.stringify({ mint: config.mint, supply, changedAt: new Date().toISOString(), source: 'solana getTokenSupply' }, null, 2) + '\n');
+    console.log(`on-chain supply now ${supply}`);
   }
 }
 

@@ -1,7 +1,7 @@
 import CONFIG from './config.js';
 import { seal, b64u } from './mailbox.js';
 
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 const LIVE_EVERY = 10_000;
 const $ = (id) => document.getElementById(id);
 
@@ -86,19 +86,41 @@ let market = store.get('market', null); // last good reading, painted instantly 
 let shownCap = 0;
 let tween = 0;
 
+// The exact token count from the Solana blockchain. Public RPCs refuse web
+// pages, so the night watch reads it and publishes it on the bell-state branch;
+// GeckoTerminal's copy of the on-chain number is the fallback.
+let supply = store.get('supply', null); // { n, at, from }
+let supplyAt = 0;
+async function refreshSupply() {
+  if (Date.now() - supplyAt < 10 * 60_000) return;
+  supplyAt = Date.now();
+  const keep = (n, from) => { if (n > 0) { supply = { n, at: Date.now(), from }; store.set('supply', supply); return true; } return false; };
+  try {
+    const r = await fetch(`https://raw.githubusercontent.com/${CONFIG.repo}/bell-state/supply.json`, { cache: 'no-cache' });
+    if (r.ok) { const j = await r.json(); if (j.mint === CONFIG.mint && keep(Number(j.supply), 'chain')) return; }
+  } catch { /* try the next */ }
+  try {
+    const r = await fetch(`https://api.geckoterminal.com/api/v2/networks/${CONFIG.chain}/tokens/${CONFIG.mint}`, { headers: { accept: 'application/json' } });
+    if (r.ok) keep(Number((await r.json()).data.attributes.normalized_total_supply), 'geckoterminal');
+  } catch { supplyAt = 0; }
+}
+
+// Market cap = DexScreener's live price x the on-chain supply.
 async function readMarket() {
-  const r = await fetch(`https://api.dexscreener.com/tokens/v1/${CONFIG.chain}/${CONFIG.mint}`, { cache: 'no-store' });
+  const [r] = await Promise.all([
+    fetch(`https://api.dexscreener.com/tokens/v1/${CONFIG.chain}/${CONFIG.mint}`, { cache: 'no-store' }),
+    refreshSupply(),
+  ]);
   if (!r.ok) throw new Error('dexscreener ' + r.status);
   const best = (await r.json())
     .filter((p) => p.marketCap > 0 && Number(p.priceUsd) > 0)
     .sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
   if (!best) throw new Error('no priced pair');
   const priceUsd = Number(best.priceUsd);
+  const tokens = supply ? supply.n : best.marketCap / priceUsd;
   return {
-    mc: best.marketCap, fdv: best.fdv, price: priceUsd, supply: best.marketCap / priceUsd,
-    liq: best.liquidity?.usd || 0, vol24: best.volume?.h24 || 0,
-    chg: best.priceChange || {}, tx: best.txns?.h1 || { buys: 0, sells: 0 },
-    pool: best.pairAddress, url: best.url, at: Date.now(),
+    mc: priceUsd * tokens, price: priceUsd, supply: tokens, supplyFrom: supply ? supply.from : 'dexscreener',
+    chg: best.priceChange || {}, pool: best.pairAddress, url: best.url, at: Date.now(),
   };
 }
 

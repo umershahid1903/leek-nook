@@ -1,6 +1,6 @@
 // Leek Nook service worker: keeps the nook openable offline and shows the
 // bell's pushes. Bump VERSION with every release (the app shows it too).
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 const SHELL = `ln-shell-${VERSION}`;
 const DIARY = 'ln-diary';
 const FILES = [
