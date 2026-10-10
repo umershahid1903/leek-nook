@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "cursor": 1791649786,
+  "cursor": 1791650076,
   "heartbeat": "2026-10",
   "bells": {
     "wmV9TSGdsOAFUDuA1rNmDrmj": {
@@ -13,6 +13,10 @@
     },
     "yRALsK3tByWMSK47fZ3flDw2": {
       "at": 1791649786221,
+      "gone": true
+    },
+    "HS4uTH7L5XPVFjDgDemZbNMp": {
+      "at": 1791650075687,
       "gone": true
     }
   }
