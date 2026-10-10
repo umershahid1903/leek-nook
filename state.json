@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "cursor": 1791650076,
+  "cursor": 1791652155,
   "heartbeat": "2026-10",
   "bells": {
     "wmV9TSGdsOAFUDuA1rNmDrmj": {
@@ -16,8 +16,14 @@
       "gone": true
     },
     "HS4uTH7L5XPVFjDgDemZbNMp": {
-      "at": 1791650075687,
-      "gone": true
+      "sealed": "{\"v\":1,\"e\":\"BBD3BkIQHfr2M4j5LnicM0HeFRw_YZDRqCVEPRGHUA0F7hSsUNuago0eUB6S54mnChNL9I9NRDmkqWVruiNKop8\",\"i\":\"II5b7FYIgWBFIFhD\",\"c\":\"Vnc_Kzf3cE9KyQjHMyvNiTYFv6doyqp3XrS2veoMe5j9SzDrddn-YNOMd0oNR5vn8y9-Hk9u156CkMn02gQWKiiiSLHZC5bbfKIINX0fArUblZGxL0BQwzYAbSMAwqIi-fqL7MzAmjqmm8glF0Yi0bWtIHaC_4_cneH-XC2-wpOFS2x1Dpbcq4dmvaRvHjM67b9mbkXNPNKabB0Nwxn6-0QzA_iYLH6G7xa8pF0f6k6BUeL6ZJ7tlQdlR-2HySibpa84fLf1Li5p2Dttq8wSZ8yDKpZ6Y6evd9rwqA-gvAoqNBdzjNsAlIiN43pM1rlRedno3EvIiUK8t_aEQOCb5ddCq9l_RIFA-rU9mQof02dqJx4VKiTbmW8hh4HmICRBWpwE4K3dSRatN_SumGUXzB6-ZGerzHwAAbr6OVUjynqCkrRGaZAq4TJV5K20vozJJzlVavlfgCoINghQyOmoy21M0JsIMi0uAsppdr_cXzsCdhjEDyyrKLQBnA-W1qukah2Euc6NbTPlxaJRadpwrmymlqw7auYJJBaFSkZxfaoe_Lc5rKesHB0Y4unhWCvoUYRKxON2aT_AUwGwdCWJUePgYpArJVzSoMnAsQeRNX6yDhJT5q4WDjZZpEM\"}",
+      "ep": "qbK9z__Lo9mfRWSf",
+      "at": 1791652154847,
+      "target": 30000000,
+      "confirmed": 1791652216485,
+      "armed": true,
+      "watchFrom": 1791652154847,
+      "firedAt": 0
     }
   }
 }
