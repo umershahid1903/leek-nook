@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "Leek Nook",
+  "short_name": "Leek Nook",
+  "description": "A cozy little window on CyberLeek's market cap, with a bell that rings at $30M.",
+  "start_url": "./?from=home",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf9f5",
+  "theme_color": "#faf9f5",
+  "categories": ["finance"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "The bell", "short_name": "Bell", "url": "./#bell", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

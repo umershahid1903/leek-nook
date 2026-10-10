@@ -1,0 +1,9 @@
+{
+  "name": "leek-nook-bell",
+  "private": true,
+  "type": "module",
+  "description": "The night watch: checks CyberLeek's market cap from GitHub Actions and rings subscribed phones via Web Push.",
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

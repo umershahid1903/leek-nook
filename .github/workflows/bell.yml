@@ -1,0 +1,71 @@
+name: night watch
+
+# Looks at CyberLeek every ~5 minutes (GitHub may run it a few minutes late)
+# and rings the phones that hung a bell. See bell/bell.mjs.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: night-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            bell
+            config.js
+            mailbox.js
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/checkout@v4
+        with:
+          ref: bell-state
+          path: .state
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: bell/package-lock.json
+
+      - run: npm ci --omit=dev --no-audit --no-fund
+        working-directory: bell
+
+      - name: look around
+        run: node bell/bell.mjs
+        env:
+          STATE_FILE: .state/state.json
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          MAILBOX_PRIVATE_JWK: ${{ secrets.MAILBOX_PRIVATE_JWK }}
+
+      - name: save what changed
+        working-directory: .state
+        run: |
+          if git diff --quiet; then echo "nothing to save"; exit 0; fi
+          git config user.name "night watch"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -qam "watch: update bells"
+          git push -q
+
+      # GitHub pauses schedules in repos idle for 60 days. Re-enabling the
+      # workflow during one hour a day keeps it awake; the monthly heartbeat
+      # commit to bell-state is the second guard.
+      - name: stay awake
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(date -u +%H)" = "03" ]; then
+            gh api -X PUT "repos/${{ github.repository }}/actions/workflows/bell.yml/enable" && echo "poked"
+          fi
