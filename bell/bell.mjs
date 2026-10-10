@@ -1,8 +1,10 @@
 // The night watch. GitHub Actions runs this every ~5 minutes:
 //   1. read new notes from the mailbox (phones hanging / taking down a bell),
-//   2. read CyberLeek's market cap (DexScreener) and the last 90 one-minute
-//      candles (GeckoTerminal), so a spike between two runs is not missed,
-//   3. ring every armed bell whose target was reached, via Web Push.
+//   2. read CyberLeek's market cap (DexScreener price × the on-chain supply)
+//      and the last 90 one-minute candles (GeckoTerminal), so a spike between
+//      two runs is not missed,
+//   3. ring every armed bell whose goal was reached: one Web Push, nothing else
+//      (picking a bell up is shown on the page via state.json, not a push).
 // State (sealed subscriptions, armed/fired flags) lives in state.json on the
 // repo's `bell-state` branch. Logs are public, so they never print endpoints.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -27,7 +29,7 @@ export function money(n) {
 }
 
 export function freshState() {
-  return { v: 1, cursor: 0, heartbeat: '', bells: {} };
+  return { v: 2, cursor: 0, heartbeat: '', bells: {} };
 }
 
 // The exact token count, straight from the Solana blockchain. The public RPC
@@ -73,6 +75,9 @@ export async function readMailbox(cfg, since, fetchImpl = fetch) {
 }
 
 const hash = (s) => createHash('sha256').update(s).digest('base64url').slice(0, 16);
+// state.json is public, so bells are filed under a hash of the phone's secret device id
+// (the page computes the same hash to find its own entry).
+export const deviceKey = (device) => createHash('sha256').update(device).digest('base64url').slice(0, 22);
 
 function validNote(n) {
   if (!n || (n.kind !== 'hang' && n.kind !== 'unhang')) return false;
@@ -88,14 +93,6 @@ function validNote(n) {
   } catch { return false; }
 }
 
-export function hungMessage(b, m) {
-  return {
-    kind: 'hung', target: b.target, mc: m?.mc ?? null, at: Date.now(),
-    title: 'The bell is hung 🔔',
-    body: `I'll ring this phone when CyberLeek reaches ${money(b.target)}.` + (m ? ` It's at ${money(m.mc)} now.` : ''),
-  };
-}
-
 export function ringMessage(b, m, peak) {
   const holding = m.mc >= b.target;
   return {
@@ -109,13 +106,19 @@ export function ringMessage(b, m, peak) {
 
 /**
  * One look around. Mutates `state`, returns a log of what happened (no secrets).
- * deps: { jwk, vapidPrivateKey, fetch, market, send, now } — tests swap these.
+ * deps: { jwk, vapidPrivateKey, fetch, market, supply, lastSupply, send, now } — tests swap these.
  */
 export async function runWatch(cfg, state, deps) {
   const now = deps.now ?? Date.now();
   const fetchImpl = deps.fetch ?? fetch;
   const log = [];
-  const tally = { notes: 0, junk: 0, hung: 0, rung: 0, gone: 0, failed: 0 };
+  const tally = { notes: 0, junk: 0, picked: 0, rung: 0, gone: 0, failed: 0 };
+
+  // v1 filed bells under the raw device id; re-file them under its hash.
+  if ((state.v || 1) < 2) {
+    state.bells = Object.fromEntries(Object.entries(state.bells || {}).map(([d, b]) => [deviceKey(d), b]));
+    state.v = 2;
+  }
 
   const send = deps.send ?? (async (sub, payload, urgent) => {
     try {
@@ -138,17 +141,18 @@ export async function runWatch(cfg, state, deps) {
       let note;
       try { note = await open(msg.message, deps.jwk); } catch { tally.junk++; continue; }
       if (!validNote(note)) { tally.junk++; continue; }
-      const cur = state.bells[note.device];
+      const key = deviceKey(note.device);
+      const cur = state.bells[key];
       if (cur && cur.at >= note.at) continue; // already seen (ntfy's `since` is inclusive), older, or replayed
       tally.notes++;
-      if (note.kind === 'unhang') { state.bells[note.device] = { at: note.at, gone: true }; continue; }
+      if (note.kind === 'unhang') { state.bells[key] = { at: note.at, gone: true }; continue; }
       const live = Object.values(state.bells).filter((b) => !b.gone).length;
       if ((!cur || cur.gone) && live >= MAX_BELLS) { log.push('bell rack full, note ignored'); continue; }
       const ep = hash(note.sub.endpoint);
-      if (cur && !cur.gone && cur.ep === ep && cur.target === note.target) {
+      if (cur && !cur.gone && cur.ep === ep && cur.target === note.target && !note.fresh) {
         Object.assign(cur, { at: note.at, sealed: msg.message }); // same phone, same target: just refreshed
       } else {
-        state.bells[note.device] = {
+        state.bells[key] = {
           sealed: msg.message, ep, at: note.at, target: note.target,
           confirmed: 0, armed: true, watchFrom: Math.min(now, Math.max(note.at, now - HOUR)), firedAt: 0,
         };
@@ -173,11 +177,8 @@ export async function runWatch(cfg, state, deps) {
     let sub;
     try { sub = (await open(b.sealed, deps.jwk)).sub; } catch { log.push('a sealed bell no longer opens; dropped'); delete state.bells[device]; continue; }
 
-    if (!b.confirmed) {
-      const r = await send(sub, hungMessage(b, market), false);
-      if (r === 'gone') { state.bells[device] = { at: b.at, gone: true }; tally.gone++; continue; }
-      if (r === 'ok') { b.confirmed = now; tally.hung++; } else tally.failed++;
-    }
+    // No "hung" push: the phone sees it was picked up in this (public) state instead.
+    if (!b.confirmed) { b.confirmed = now; tally.picked++; }
     if (!market) continue;
 
     if (b.armed) {
@@ -201,7 +202,7 @@ export async function runWatch(cfg, state, deps) {
   state.heartbeat = new Date(now).toISOString().slice(0, 7);
 
   const live = Object.values(state.bells).filter((b) => !b.gone);
-  log.push(`bells: ${live.length} hung, ${live.filter((b) => b.armed).length} armed · notes ${tally.notes} (junk ${tally.junk}) · confirmed ${tally.hung} · rang ${tally.rung} · gone ${tally.gone} · failed ${tally.failed}`);
+  log.push(`bells: ${live.length} hung, ${live.filter((b) => b.armed).length} armed · notes ${tally.notes} (junk ${tally.junk}) · picked up ${tally.picked} · rang ${tally.rung} · gone ${tally.gone} · failed ${tally.failed}`);
   return { log, tally, market, supply };
 }
 

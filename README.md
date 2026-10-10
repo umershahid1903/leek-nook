@@ -8,13 +8,17 @@ A cozy little window on **CyberLeek**'s market cap (Solana, mint `ApZuxdpzMrbEYT
 
 1. Open the link in **Chrome** → tap **Add it** (or ⋮ → *Add to Home screen* → *Install*).
 2. Open Leek Nook from the home screen → **Hang the bell** → allow notifications.
-3. Within ~5–15 minutes you get a "The bell is hung 🔔" notification. That means the whole chain works.
+3. Within ~5–15 minutes the bell card says **"Hung. The night watch has this phone…"**. There's no popup for that.
+
+What rings: **one notification when the cap reaches your goal, and only while the nook is closed.** If it's open, the leek blooms and petals fall instead. **Test ring** shows what the notification looks like.
 
 ## How it works
 
-- **The page** (`index.html`, `app.css`, `app.js`) reads the market cap from DexScreener every 10 s while it's open and shows it with a bar toward the goal. When the cap reaches the goal with the page open, it rings right away.
-- **The night watch** (`.github/workflows/bell.yml` → `bell/bell.mjs`) runs on GitHub Actions every ~5 minutes. It reads the market cap and the last 90 one-minute candles, so a spike between two runs still counts (candle bodies only, not single-trade wicks). It then sends a Web Push to every armed bell that reached its goal. A bell rings once, then re-arms after the cap falls under 90% of the goal.
-- **The mailbox** (`mailbox.js`) is how the phone tells the night watch where to ring. The phone seals its push address with the watch's public key and posts it to a public [ntfy.sh](https://ntfy.sh) topic. Only the Actions secret can open it. The watch keeps the sealed notes in `state.json` on the `bell-state` branch.
+- **Market cap** = DexScreener's live price × the exact token supply on the Solana blockchain (`getTokenSupply`; mint authority is revoked, so it can only shrink). The night watch reads the supply and publishes it as `supply.json` on the `bell-state` branch, because public Solana RPCs refuse web pages. The page falls back to GeckoTerminal's copy of the on-chain number.
+- **The page** (`index.html`, `app.css`, `app.js`) refreshes every 10 s while open and shows the cap with a bar toward the goal.
+- **The night watch** (`.github/workflows/bell.yml` → `bell/bell.mjs`) runs on GitHub Actions every ~5 minutes. It reads the cap and the last 90 one-minute candles, so a spike between two runs still counts (candle bodies only, not single-trade wicks). It then sends one Web Push to every armed bell that reached its goal. The service worker (`sw.js`) shows it only if no Leek Nook window is on screen. A bell rings once, then re-arms after the cap falls under 90% of the goal.
+- **The mailbox** (`mailbox.js`) is how the phone tells the night watch where to ring. The phone seals its push address with the watch's public key and posts it to a public [ntfy.sh](https://ntfy.sh) topic. Only the Actions secret can open it. The watch keeps the sealed notes in `state.json` on `bell-state`, filed under a hash of each phone's secret device id. The page reads that file to show "picked up".
+- **Self-healing:** each time the nook opens it checks its push address. If Chrome dropped it (site data cleared, notifications toggled, app installed after hanging), it sends a new one. If the watch hasn't picked it up after 40 minutes, it sends the note again.
 - Secrets (repo → Settings → Secrets → Actions): `VAPID_PRIVATE_KEY`, `MAILBOX_PRIVATE_JWK`. The public halves are in `config.js`.
 
 ## Tests (local, nothing touches the real bell)

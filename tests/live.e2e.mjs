@@ -1,8 +1,10 @@
 // Live check of the deployed nook with the REAL keys: a throwaway headless
 // Chrome hangs a bell on the github.io site, the real night watch (GitHub
-// Actions) confirms it with a real push, then the bell is taken down again.
+// Actions) picks it up (no popup; the page reads the public notes), then the
+// test bell is taken down again. Other phones' bells are left alone.
 // Needs `gh` logged in. `node tests/live.e2e.mjs`
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { launch } from './cdp.mjs';
 import CONFIG from '../config.js';
 
@@ -39,30 +41,36 @@ try {
   await p.waitFor('navigator.serviceWorker.ready.then(() => true)', 20000);
   const { installabilityErrors } = await p.send('Page.getInstallabilityErrors');
   ok(installabilityErrors.length === 0, 'Chrome sees it as installable (home-screen app)', JSON.stringify(installabilityErrors));
-  await p.eval(`window.__pushes = []; navigator.serviceWorker.addEventListener('message', (e) => window.__pushes.push(e.data))`);
-
+  const device = await p.eval(`JSON.parse(localStorage.getItem('ln.device'))`);
   await sleep(1500);
   await p.eval(`document.getElementById('hangBtn').click()`);
-  try { await p.waitFor(`JSON.parse(localStorage.getItem('ln.bell') || '{}').hung === true`, 30000); }
-  catch (e) { console.log('btn:', await p.eval(`document.getElementById('hangBtn').textContent`), '| toast:', await p.eval(`document.getElementById('toast').textContent`), '| logs:', p.logs.join(' / ')); throw e; }
+  try { await p.waitFor(`JSON.parse(localStorage.getItem('ln.bell') || '{}').hung === true`, 50000); }
+  catch (e) { console.log('btn:', await p.eval(`document.getElementById('hangBtn').textContent`), '| toast:', await p.eval(`document.getElementById('toast').textContent`)); throw e; }
   ok(true, 'hung a bell on the live site (sealed note posted from github.io)');
   await sleep(2000);
 
   const run1 = await runWatchOnGitHub();
-  ok(run1.ok && /confirmed 1/.test(run1.log), 'real night watch on GitHub opened the note and pushed', run1.log);
-  try {
-    await p.waitFor('window.__pushes.length >= 1', 60000);
-    const status = await p.eval(`document.getElementById('bellStatus').textContent`);
-    ok(/confirmed/.test(status), 'the push from GitHub reached the phone; page says confirmed', status);
-    const titles = await p.eval(`navigator.serviceWorker.ready.then((r) => r.getNotifications()).then((ns) => ns.map((n) => n.title))`);
-    ok(titles.includes('The bell is hung 🔔'), 'notification shown', JSON.stringify(titles));
-  } catch { ok(false, 'no push arrived from the real night watch within 60 s'); }
+  ok(run1.ok && /picked up 1/.test(run1.log) && /failed 0/.test(run1.log), 'real night watch on GitHub picked it up', run1.log);
+  await sleep(4000);
+  const titles = await p.eval(`navigator.serviceWorker.ready.then((r) => r.getNotifications()).then((ns) => ns.map((n) => n.title))`);
+  ok(titles.length === 0, 'no popup on the phone', JSON.stringify(titles));
+  let seen = '';
+  for (let i = 0; i < 8 && !/has this phone/.test(seen); i++) {
+    await p.goto(SITE);
+    await p.waitFor(`document.getElementById('mcNum').textContent !== '…'`, 30000);
+    await sleep(3000);
+    seen = await p.eval(`document.getElementById('bellStatus').textContent`);
+    if (!/has this phone/.test(seen)) await sleep(10000);
+  }
+  ok(/has this phone/.test(seen), 'the live page shows it was picked up (from the public notes)', seen);
 
   await p.eval(`document.getElementById('downBtn').click()`);
   await p.waitFor(`JSON.parse(localStorage.getItem('ln.bell') || '{}').hung === false`, 20000);
   await sleep(2000);
   const run2 = await runWatchOnGitHub();
-  ok(run2.ok && /bells: 0 hung/.test(run2.log), 'taken down again; the real rack is empty', run2.log);
+  const state = JSON.parse(Buffer.from(gh('api', `repos/${CONFIG.repo}/contents/state.json?ref=bell-state`, '--jq', '.content'), 'base64').toString());
+  const key = createHash('sha256').update(device).digest('base64url').slice(0, 22);
+  ok(run2.ok && state.bells?.[key]?.gone === true && !JSON.stringify(state).includes(device), 'taken down again; the test bell is gone, filed under a hash', run2.log);
 } catch (e) {
   ok(false, 'crashed: ' + e.message);
 } finally { await b.close(); }

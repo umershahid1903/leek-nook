@@ -1,7 +1,7 @@
 import CONFIG from './config.js';
 import { seal, b64u } from './mailbox.js';
 
-const VERSION = '1.0.2';
+const VERSION = '1.1.0';
 const LIVE_EVERY = 10_000;
 const $ = (id) => document.getElementById(id);
 
@@ -96,7 +96,7 @@ async function refreshSupply() {
   supplyAt = Date.now();
   const keep = (n, from) => { if (n > 0) { supply = { n, at: Date.now(), from }; store.set('supply', supply); return true; } return false; };
   try {
-    const r = await fetch(`https://raw.githubusercontent.com/${CONFIG.repo}/bell-state/supply.json`, { cache: 'no-cache' });
+    const r = await fetch(`${CONFIG.stateBase}supply.json?t=${Math.floor(Date.now() / 600_000)}`, { cache: 'no-cache' });
     if (r.ok) { const j = await r.json(); if (j.mint === CONFIG.mint && keep(Number(j.supply), 'chain')) return; }
   } catch { /* try the next */ }
   try {
@@ -176,7 +176,7 @@ async function liveTick() {
     store.set('market', m);
     liveFails = 0;
     paintMarket(m, prev);
-    checkLocalRing(m);
+    checkLocalGoal(m);
   } catch {
     liveFails++;
   }
@@ -217,11 +217,23 @@ function paintBar() {
 }
 
 // ---------- the bell ----------
+// One notification at the goal, and only when the nook is closed: while it's
+// open the goal shows right here (bloom + petals). There is no "hung" popup;
+// the night watch's public notes (state.json, keyed by a hash of this phone's
+// secret device id) tell the page when it has picked the phone up.
 const canPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const STUCK_AFTER = 40 * 60_000; // not picked up by then → send the note again
 let bell = store.get('bell', { hung: false });
+const newDevice = () => b64u.enc(crypto.getRandomValues(new Uint8Array(18)));
 let device = store.get('device', null);
-if (!device) { device = b64u.enc(crypto.getRandomValues(new Uint8Array(18))); store.set('device', device); }
+if (!device) { device = newDevice(); store.set('device', device); store.set('deviceV', 2); }
+if (store.get('deviceV', 1) < 2 && !store.get('bell', {}).hung) { device = newDevice(); store.set('device', device); store.set('deviceV', 2); }
 let swReg = null;
+
+async function deviceKey(d = device) {
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(d));
+  return b64u.enc(h).slice(0, 22);
+}
 
 function saveBell(patch) { bell = { ...bell, ...patch }; store.set('bell', bell); paintBell(); }
 
@@ -240,19 +252,27 @@ function setStatus(kind, text) {
 
 function paintBell() {
   paintTargets();
-  const ico = $('bellIco');
-  ico.classList.toggle('hung', !!bell.hung);
-  $('hangBtn').hidden = !!bell.hung;
-  $('testBtn').hidden = !bell.hung;
+  const perm = canPush ? Notification.permission : 'denied';
+  const broken = bell.hung && perm !== 'granted';
+  const stuck = bell.hung && !bell.seen && Date.now() - (bell.needAt || 0) > STUCK_AFTER;
+  $('bellIco').classList.toggle('hung', !!bell.hung && !broken && !bell.lost);
+  const hangBtn = $('hangBtn');
+  hangBtn.hidden = !!bell.hung && !broken && !stuck && !bell.lost;
+  if (!hangBtn.disabled) hangBtn.textContent = bell.hung ? 'Hang it again' : 'Hang the bell';
+  $('testBtn').hidden = !bell.hung || broken;
   $('downBtn').hidden = !bell.hung;
   if (!canPush) return setStatus('bad', "This browser can't ring. Open the nook in Chrome on your phone.");
-  if (Notification.permission === 'denied') {
-    return setStatus('bad', 'Chrome is blocking notifications here. Tap the icon left of the address (or long-press the app icon → App info) and allow notifications.');
+  if (perm === 'denied') {
+    return setStatus('bad', (bell.hung ? "Notifications for Leek Nook got switched off, so the bell can't ring. " : 'Chrome is blocking notifications here. ')
+      + 'Long-press the app icon → App info → Notifications (or tap the icon left of the address in Chrome) and allow them, then tap Hang ' + (bell.hung ? 'it again.' : 'the bell.'));
   }
-  if (!bell.hung) return setStatus('', `Not hung yet. Hang it and this phone rings at ${money(target)}, even when the nook is closed.`);
+  if (broken) return setStatus('bad', "Notifications for Leek Nook are off, so the bell can't ring. Tap Hang it again to switch them back on.");
+  if (!bell.hung) return setStatus('', `Not hung yet. Hang it and this phone gets one notification at ${money(target)} while the nook is closed.`);
+  if (bell.lost) return setStatus('bad', "The night watch couldn't reach this phone. Tap Hang it again.");
   if (bell.rangAt && bell.rangTarget === target) return setStatus('ok', `Rang at ${clock(bell.rangAt, true)} for ${money(target)}. It rings again if the cap dips under ${money(target * CONFIG.rearmBelow)} and climbs back.`);
-  if (bell.confirmedAt && bell.confirmedTarget === target) return setStatus('ok', `Hung and confirmed. The night watch rings this phone at ${money(target)}.`);
-  return setStatus('wait', `Hung at ${clock(bell.postedAt)}. Waiting for the night watch to say hello, usually within 5 to 15 minutes.`);
+  if (bell.seen) return setStatus('ok', `Hung. The night watch has this phone and sends one notification at ${money(target)} while the nook is closed.`);
+  if (stuck) return setStatus('wait', `The night watch hasn't picked it up since ${clock(bell.needAt)}. Sending the note again…`);
+  return setStatus('wait', `Hung at ${clock(bell.needAt || bell.postedAt)}. The night watch picks it up within 5 to 15 minutes; it'll show here.`);
 }
 
 function busy(btn, on, label) {
@@ -282,6 +302,15 @@ async function post(note) {
   if (!r.ok) throw new Error('mailbox ' + r.status);
 }
 
+// Sends this phone's push address and goal. `fresh` asks the watch to start over
+// with it (new address, new goal, or a re-hang); a plain refresh just keeps it current.
+async function postHang(sub, fresh) {
+  const at = Date.now();
+  await within(20_000, post({ kind: 'hang', device, sub: sub.toJSON(), target, at, fresh }), 'the mailbox');
+  saveBell({ hung: true, postedAt: at, endpoint: sub.endpoint, target, ...(fresh ? { needAt: at, seen: false, lost: false } : {}) });
+  if (fresh) followWatch(60_000);
+}
+
 async function hang() {
   if (!canPush) return paintBell();
   const btn = $('hangBtn');
@@ -290,10 +319,9 @@ async function hang() {
     const perm = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission;
     if (perm !== 'granted') { paintBell(); if (perm === 'default') toast('The bell needs notifications to ring you.'); return; }
     const sub = await within(45_000, getSubscription(true), 'signing up for push');
-    await within(20_000, post({ kind: 'hang', device, sub: sub.toJSON(), target, at: Date.now() }), 'the mailbox');
-    saveBell({ hung: true, postedAt: Date.now(), endpoint: sub.endpoint, target });
+    await postHang(sub, true);
     $('bellIco').classList.remove('ring'); void $('bellIco').offsetWidth; $('bellIco').classList.add('ring');
-    toast('Bell hung. The night watch will say hello soon.');
+    toast('Bell hung. The night watch picks it up within a few minutes.');
   } catch (e) {
     toast("Couldn't hang the bell (" + (e.message || 'error') + '). Try again in a moment.', 4000);
   } finally {
@@ -309,7 +337,7 @@ async function takeDown() {
     await post({ kind: 'unhang', device, at: Date.now() });
     const sub = await getSubscription(false);
     if (sub) await sub.unsubscribe();
-    saveBell({ hung: false, confirmedAt: 0, rangAt: 0 });
+    saveBell({ hung: false, seen: false, lost: false, rangAt: 0 });
     toast('Bell taken down. No more rings.');
   } catch (e) {
     toast("Couldn't reach the mailbox, try again in a moment.", 3500);
@@ -317,6 +345,7 @@ async function takeDown() {
 }
 
 async function testRing() {
+  if (Notification.permission === 'default') await Notification.requestPermission();
   const reg = swReg || await navigator.serviceWorker.ready;
   await reg.showNotification('Test ring 🔔', {
     body: `This is how the bell sounds. CyberLeek is at ${market ? money(market.mc) : '…'} right now.`,
@@ -331,21 +360,19 @@ function chooseTarget(t) {
   store.set('target', t);
   paintBell();
   paintBar();
-  if (market) checkLocalRing(market);
+  if (market) checkLocalGoal(market);
   if (!bell.hung) return;
   clearTimeout(retargetTimer);
   retargetTimer = setTimeout(async () => {
     try {
-      const sub = await getSubscription(true);
-      await post({ kind: 'hang', device, sub: sub.toJSON(), target, at: Date.now() });
-      saveBell({ postedAt: Date.now(), endpoint: sub.endpoint, target });
+      await postHang(await getSubscription(true), true);
       toast(`The bell now rings at ${money(target)}.`);
     } catch { toast("Couldn't move the bell, try again in a moment.", 3500); }
   }, 700);
 }
 
-// While the nook is open it watches too, so a crossing rings within seconds.
-function checkLocalRing(m) {
+// While the nook is open the goal shows right here, no notification.
+function checkLocalGoal(m) {
   const armed = store.get('localArmed', {});
   const key = String(target);
   if (m.mc >= target) {
@@ -353,13 +380,6 @@ function checkLocalRing(m) {
     armed[key] = false;
     store.set('localArmed', armed);
     celebrate();
-    if (canPush && Notification.permission === 'granted') {
-      (swReg ? Promise.resolve(swReg) : navigator.serviceWorker.ready).then((reg) => reg.showNotification(`CyberLeek hit ${money(target)}! 🌱`, {
-        body: `Market cap is ${money(m.mc)} right now. Your leek is fully grown.`,
-        tag: 'ring-' + target, renotify: true, requireInteraction: true, icon: 'icons/icon-192.png', badge: 'icons/badge-96.png',
-        vibrate: [200, 100, 200, 100, 400], data: { shownAt: Date.now(), kind: 'ring' },
-      }));
-    }
   } else if (m.mc < target * CONFIG.rearmBelow && armed[key] === false) {
     armed[key] = true;
     store.set('localArmed', armed);
@@ -368,6 +388,7 @@ function checkLocalRing(m) {
 
 function celebrate() {
   const box = $('petals');
+  toast(`It made it to ${money(target)}! 🌸`, 5000);
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   box.innerHTML = '';
   for (let i = 0; i < 28; i++) {
@@ -380,38 +401,70 @@ function celebrate() {
     box.appendChild(p);
   }
   setTimeout(() => { box.innerHTML = ''; }, 7000);
-  toast(`It made it to ${money(target)}! 🌸`, 5000);
 }
 
+// A ring that arrives while the nook is open: the worker skipped the popup and tells us instead.
 function onPush(p) {
-  if (!p) return;
-  if (p.kind === 'hung') saveBell({ confirmedAt: p.at || Date.now(), confirmedTarget: p.target });
-  if (p.kind === 'ring') { saveBell({ rangAt: p.at || Date.now(), rangTarget: p.target }); if (!document.hidden && p.target === target) celebrate(); }
-  $('bellIco').classList.remove('ring'); void $('bellIco').offsetWidth; $('bellIco').classList.add('ring');
+  if (!p || p.kind !== 'ring') return;
+  saveBell({ rangAt: p.at || Date.now(), rangTarget: p.target });
+  if (p.target === target && market) checkLocalGoal({ ...market, mc: Math.max(market.mc, p.mc || 0, p.peak || 0) });
 }
 
-// The service worker writes down every push it gets, so news that arrived while closed shows here.
+// The service worker writes down rings that came while the nook was closed.
 async function readPushDiary() {
   try {
-    const c = await caches.open('ln-diary');
-    const r = await c.match('diary.json');
+    const r = await (await caches.open('ln-diary')).match('diary.json');
     if (!r) return;
     const d = await r.json();
-    if (d.hung && d.hung.at > (bell.confirmedAt || 0)) onPush(d.hung);
     if (d.ring && d.ring.at > (bell.rangAt || 0)) saveBell({ rangAt: d.ring.at, rangTarget: d.ring.target });
   } catch { /* nothing yet */ }
 }
 
-// Keep the night watch's copy fresh: re-post if the phone's push address changed or every few days.
-async function refreshBell() {
-  if (!bell.hung || !canPush || Notification.permission !== 'granted') return;
+// Has the night watch picked this phone up? Its notes are public on the bell-state branch.
+let watchTimer;
+async function readWatch() {
+  if (!bell.hung) return;
   try {
-    const sub = await getSubscription(true);
-    if (sub.endpoint !== bell.endpoint || Date.now() - (bell.postedAt || 0) > 3 * 86400_000) {
-      await post({ kind: 'hang', device, sub: sub.toJSON(), target, at: Date.now() });
-      saveBell({ postedAt: Date.now(), endpoint: sub.endpoint });
+    const r = await fetch(`${CONFIG.stateBase}state.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) return;
+    const mine = (await r.json()).bells?.[await deviceKey()];
+    if (!mine || mine.at < (bell.needAt || 0)) return;
+    if (mine.gone) saveBell({ lost: true, seen: false });
+    else saveBell({ seen: true, lost: false, ...(mine.firedAt > (bell.rangAt || 0) ? { rangAt: mine.firedAt, rangTarget: mine.target } : {}) });
+  } catch { /* offline */ }
+}
+function followWatch(every) {
+  clearTimeout(watchTimer);
+  const tick = async () => {
+    if (!document.hidden) await readWatch();
+    if (bell.hung && !bell.seen && !bell.lost) watchTimer = setTimeout(tick, every);
+  };
+  watchTimer = setTimeout(tick, every);
+}
+
+// Keep the night watch's copy fresh. If Chrome dropped the push address (site
+// data cleared, notifications toggled, app installed after hanging) a new one
+// is made and sent; if the watch never picked it up, the note goes again.
+async function refreshBell() {
+  if (!bell.hung || !canPush || Notification.permission !== 'granted') return paintBell();
+  try {
+    // v1.0.x published device ids in the watch's notes; move to a fresh, never-published id.
+    let oldDevice = store.get('oldDevice', null);
+    if (store.get('deviceV', 1) < 2) {
+      oldDevice = device;
+      device = newDevice();
+      store.set('device', device); store.set('deviceV', 2); store.set('oldDevice', oldDevice);
     }
+    const sub = await getSubscription(true);
+    const moved = sub.endpoint !== bell.endpoint;
+    const stuck = !bell.seen && Date.now() - (bell.needAt || bell.postedAt || 0) > STUCK_AFTER;
+    if (oldDevice || moved || stuck || bell.lost) await postHang(sub, true);
+    else if (Date.now() - (bell.postedAt || 0) > 3 * 86400_000) await postHang(sub, false);
+    if (oldDevice) { await post({ kind: 'unhang', device: oldDevice, at: Date.now() }); store.set('oldDevice', null); }
   } catch { /* try again next open */ }
+  await readWatch();
+  if (bell.hung && !bell.seen) followWatch(60_000);
+  paintBell();
 }
 
 async function watchSeen() {
@@ -514,7 +567,7 @@ async function start() {
     if (document.hidden) { clearTimeout(liveTimer); return; }
     greet();
     liveTick();
-    readPushDiary();
+    readPushDiary().then(refreshBell);
     watchSeen();
   });
 }

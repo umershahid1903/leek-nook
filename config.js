@@ -8,6 +8,7 @@ export default {
 
   repo: 'umershahid1903/leek-nook',
   workflow: 'bell.yml',
+  stateBase: 'https://raw.githubusercontent.com/umershahid1903/leek-nook/bell-state/', // the night watch's public notes
 
   // Public halves only — the private keys live in the repo's Actions secrets.
   vapidPublicKey: 'BD-vwevh5qq29ccGinYrbGCux4aSM5Fde-c4ap0GbL-gt8hi_Y2nXH0rBGE4q-2F6cEegYV5pRWHtJwog-pLrko',

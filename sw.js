@@ -1,6 +1,6 @@
 // Leek Nook service worker: keeps the nook openable offline and shows the
 // bell's pushes. Bump VERSION with every release (the app shows it too).
-const VERSION = '1.0.2';
+const VERSION = '1.1.0';
 const SHELL = `ln-shell-${VERSION}`;
 const DIARY = 'ln-diary';
 const FILES = [
@@ -43,28 +43,30 @@ async function writeDiary(p) {
   await c.put('diary.json', new Response(JSON.stringify(d), { headers: { 'content-type': 'application/json' } }));
 }
 
+// The goal is announced once: by a notification when the nook is closed, or on
+// the open page itself (bloom + petals) when it's on screen. Chrome only insists
+// on a notification for a push when none of the site's windows is visible.
 self.addEventListener('push', (e) => {
   let p;
   try { p = e.data.json(); } catch { p = { title: 'Leek Nook', body: e.data ? e.data.text() : '' }; }
   const kind = p.kind || 'note';
-  const tag = kind === 'ring' ? `ring-${p.target}` : kind;
   e.waitUntil((async () => {
-    // If this phone already rang for the same goal (the open nook rings too), don't buzz twice.
-    const same = await self.registration.getNotifications({ tag });
-    const recent = same.some((n) => n.data && Date.now() - n.data.shownAt < 30 * 60_000);
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const w of wins) w.postMessage({ type: 'push', payload: p });
+    if (kind === 'ring') await writeDiary(p);
+    if (wins.some((w) => w.visibilityState === 'visible')) return;
     await self.registration.showNotification(p.title || 'Leek Nook', {
       body: p.body || '',
-      tag,
-      renotify: !recent,
+      tag: kind === 'ring' ? `ring-${p.target}` : kind,
+      renotify: kind === 'ring',
+      silent: kind !== 'ring',
       icon: 'icons/icon-192.png',
       badge: 'icons/badge-96.png',
-      vibrate: kind === 'ring' ? [200, 100, 200, 100, 400] : [80],
+      vibrate: kind === 'ring' ? [200, 100, 200, 100, 400] : undefined,
       requireInteraction: kind === 'ring',
       timestamp: p.at || Date.now(),
       data: { kind, shownAt: Date.now() },
     });
-    if (kind === 'hung' || kind === 'ring') await writeDiary(p);
-    for (const c of await self.clients.matchAll({ type: 'window', includeUncontrolled: true })) c.postMessage({ type: 'push', payload: p });
   })());
 });
 
