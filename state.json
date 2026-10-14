@@ -1,12 +1,12 @@
 {
   "v": 2,
-  "cursor": 1791728203,
+  "cursor": 1791980348,
   "heartbeat": "2026-10",
   "bells": {
     "VL6h2DYQZK99w4IXOOWX9p": {
-      "sealed": "{\"v\":1,\"e\":\"BFn6gCoukySqNTw5jYsRmeb3Sn6HST8lIHXLv5VQycUMSPCI-eXU4JOAnWQjoG7PoNZQB9d4ulpdKh8wCfRBKqU\",\"i\":\"_SuA21MogkIeEjOO\",\"c\":\"cfmg7RmGnEi94fi14iVMYaTLUNAS-ljYOMd6Fs-Mi3nlKmN0OZTKp8nMisCDOtM3NnPMy2zD64YwRI4g04WkTKTpA4fQxct6ZkQ6tIfZnztPoSbGsgepE8ABlIV2IVvVQKKKGtT2oAk6HFk0Tl4CVVUUWJocUzgIZpehS4pD3fDZIbwutNZ5LYh60Z8CkhL_U6P_RIF7yQo2j8aEwNXwSynyqw6mEzEf3NH_K6KYNiBZkKF--FwGPP4azx00CZEM8RFM4hCb5EuS2edNg_uJEQdcLyYx2GUQCfxuLnAcQs-M7iwoDBsHZqV1SELyIKyFK6YLULW2lnSMO8RyrgQU0VqwkJMKGgROdCGdnfs3qSXMEq0vjfWAj8-IdcmEKr5yx8EVCfkgv942xxnQmuWXCmLm0kgJ00iwwQ7I31IJaRltkcWy1ajDWmyZFRMya3B8EwFWKLkucnsprK4nEsjinII23kfYcz0QuJ-7vRkTSTcOKD3nTfjRmXKWcFs-qq2jczjMUEt9YN1EZ4FKMQ5tuLza7BQvUew5IBTR2dXpaz_Neus719k1JPu16vzmQ7FfwsiTqKwZ214jILIusMy0PSwwzGEPMu5o4rHqDrIEpPhEMfKwafgZTZXFViymdhNIrRSRvEXCQB5k\"}",
+      "sealed": "{\"v\":1,\"e\":\"BEQz8sGaUDtt-r-IoYhK3CzGpmqzfwt2zjtCi6bMbFEN6mpu9EbRuUWRHVIxZP0dZgBGPcuCWm_2z9y2KUGS1EE\",\"i\":\"lmEGYQxcR5C4jsG3\",\"c\":\"1B3Sov1iX0NDzd90vf9oykiEed59lhadM-JksyyaRUUz0grMoseSqidSWEd8QvZjZTreKbbAnHPRx7u_YPO_XAkMIEciicUrdDfBH0Xe1rFOb-Ngla1fKOv70aEtH-WMuyPwKYHW-GF9H6nI99BGRCqThYQ_ShjJ-EnPMRldL5rJq-sj3lkj7FeX71TKT91b8MSoiPG8JDIRJwnQcMLrVFPJSi3UtSpBdujUdl-4XvGBBK4MzCoZ3zfmOBae0frD4YhVHc48tVO5ZMy0SjN7N5A8pcXr1AmUp6Il1b8N6768qSu4ZYdQKFFWgI-Ji6cU4d1DUEelSxIaIGsV7dFwp1kbFeqdBSzPMIpQ0ulZSPyx5-g_zNygDz_RXcDMURl0Tml9zkQdtspfEQIAbHmYK4B4MxKr3Oc2AqMN4pIalhNHH_TgdYG6eXCpDPi_jK427DW0oYyxW42-Kl0u8DLREauGCot9lmLsI4TwsHhnKN6ggB1_rrytOk_L-XvVZmwChepIjM8K91eJYehJnk8YGJz16Rk4InbAMoVvKNHAzqtoR_Xjl2gdbJgwXwCvB0baP3KgDb_uuiYEA-6fU3SlmwPMTjAIaoaOdJfOyowKBcUC2YajdPyA4F9ImzQtwqojfygmEYTtIOk5pQ\"}",
       "ep": "qbK9z__Lo9mfRWSf",
-      "at": 1791710820233,
+      "at": 1791980347926,
       "target": 30000000,
       "confirmed": 1791710927637,
       "armed": true,
