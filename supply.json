@@ -1,6 +1,6 @@
 {
   "mint": "ApZuxdpzMrbEYTGEzeY9afh5pj9d6qPRJCTgQYiipbKg",
-  "supply": "729875610.983659414",
-  "changedAt": "2026-10-27T12:46:52.714Z",
+  "supply": "729875584.959912718",
+  "changedAt": "2026-10-27T15:07:24.705Z",
   "source": "solana getTokenSupply"
 }
