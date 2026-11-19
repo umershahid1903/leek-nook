@@ -1,16 +1,16 @@
 {
   "v": 2,
-  "cursor": 1791980348,
+  "cursor": 1795124763,
   "heartbeat": "2026-11",
   "bells": {
     "VL6h2DYQZK99w4IXOOWX9p": {
-      "sealed": "{\"v\":1,\"e\":\"BEQz8sGaUDtt-r-IoYhK3CzGpmqzfwt2zjtCi6bMbFEN6mpu9EbRuUWRHVIxZP0dZgBGPcuCWm_2z9y2KUGS1EE\",\"i\":\"lmEGYQxcR5C4jsG3\",\"c\":\"1B3Sov1iX0NDzd90vf9oykiEed59lhadM-JksyyaRUUz0grMoseSqidSWEd8QvZjZTreKbbAnHPRx7u_YPO_XAkMIEciicUrdDfBH0Xe1rFOb-Ngla1fKOv70aEtH-WMuyPwKYHW-GF9H6nI99BGRCqThYQ_ShjJ-EnPMRldL5rJq-sj3lkj7FeX71TKT91b8MSoiPG8JDIRJwnQcMLrVFPJSi3UtSpBdujUdl-4XvGBBK4MzCoZ3zfmOBae0frD4YhVHc48tVO5ZMy0SjN7N5A8pcXr1AmUp6Il1b8N6768qSu4ZYdQKFFWgI-Ji6cU4d1DUEelSxIaIGsV7dFwp1kbFeqdBSzPMIpQ0ulZSPyx5-g_zNygDz_RXcDMURl0Tml9zkQdtspfEQIAbHmYK4B4MxKr3Oc2AqMN4pIalhNHH_TgdYG6eXCpDPi_jK427DW0oYyxW42-Kl0u8DLREauGCot9lmLsI4TwsHhnKN6ggB1_rrytOk_L-XvVZmwChepIjM8K91eJYehJnk8YGJz16Rk4InbAMoVvKNHAzqtoR_Xjl2gdbJgwXwCvB0baP3KgDb_uuiYEA-6fU3SlmwPMTjAIaoaOdJfOyowKBcUC2YajdPyA4F9ImzQtwqojfygmEYTtIOk5pQ\"}",
+      "sealed": "{\"v\":1,\"e\":\"BOB0lAwUY2r6oMQKWfGTcuzMcv2o-HF2oIRFNCNDLiI-by3sQU_sbxfnMe_5OL-lqSXjIaP2pIbAiYN9w6Z0QMI\",\"i\":\"r_wXdF1FU3KZ9t7R\",\"c\":\"bCOxO4j-g5k-zDg4NUn36V384chcuQX4X48mK91-UI-GnBWzR-uG43VcLwLLumwIdOqQNJJriUkiiVa0BfnakhEtnzoTEh4rRm2n9rrpQJZRgoplTnRpYHO5gwIZ63fZQt4OuLyvRrBknZl96WIpp1GKGhfX-zu2_Ea45Z3pRPgO2A-9fxdrJJA6vaeTgDDcAELP85nZoJvRusia5g-j0U1ejL1pP-jfWPnj6QVWQIR4F88NodcabWCQ9eqrxQpOasry70ELUoH7Nt32mnaz9yBYwxo6Iab6JesUcYZSv6d652yvn5cG7IdLu7zl6Vk5I3U1IweuUNyfbDLsjinoOlSF6vfckB0ZPVzthwullYjOCNVeuOQX12dmDAPa0pm60sWiMEQiDkDZCXtMUUOwx8ckKrLJTglpS889-Bi2r91HNv3VamEkoFasaN-gdXfRWNORiiPMhXpAgw4_86xslyAYbZIIkRJixjqTau2Gw5CT-M4L0yzhe4ybjk1Ul8mVaaD0ZZOHVmN2uDwM5TC1nrOHQXKa59i4wwRk7aOqVYnXLkGFBp95_T1YWlfhfr37mg4yNRNLGKeA3LFnzcLJ4BqFoxh8izxr6ROIUyvF7rCQ6B2feq4gHrobQdvkURpX_tUBQvG2CDbtQw\"}",
       "ep": "qbK9z__Lo9mfRWSf",
-      "at": 1791980347926,
-      "target": 30000000,
-      "confirmed": 1791710927637,
+      "at": 1795124762440,
+      "target": 15000000,
+      "confirmed": 1795130250230,
       "armed": true,
-      "watchFrom": 1791710820233,
+      "watchFrom": 1795126650230,
       "firedAt": 0
     },
     "bm9doDvpEKl6iU69OyS7sZ": {
