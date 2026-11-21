@@ -1,16 +1,16 @@
 {
   "v": 2,
-  "cursor": 1795204007,
+  "cursor": 1795243208,
   "heartbeat": "2026-11",
   "bells": {
     "VL6h2DYQZK99w4IXOOWX9p": {
-      "sealed": "{\"v\":1,\"e\":\"BDTKsB7Hy5Kwhz-7oKePLFi_TuMcY-77qTKIyfa8nTJBWIr9sMStHYs1jtpCCJFgHkydY1DfFBAAXvVHvuqdpkQ\",\"i\":\"l5oImPyZu-1vXyFO\",\"c\":\"LxuCWA138Ek0HUGBL0LnjbQrNbGipabmH8bEzTIe_ZC91Fysxh_THKw1dZOhgTa8dvuuYuIKh-NyIXIMxDsTXFA-Z1lnt2lMI6IsgHels--NfNBskzTtnBX5h1Y7SSlACG3fypRoCVqVunlFmuGVFzxvrnbTLzof5tBb_i8QYRvJVwJpRat130RwviN2Re7fWFabMEAiAFwvqPgT614uURMt51qlMwP-SAXi1DcVTNdNuz5wRPEZH8I_0gEA_-c-7dW6ZlRRtCgllJ-J_FOy9xSKTPh0B_KP5fw08vhg8lKnKAyrh5dKZq37jXyTxmH5vrfj5edyROUuVVgPpySFwO-eYnshvgyt6t9CNAeQjZBbPxMnWVeh9f-1iTj2ekB5tMTlE-WVIul6yB6aDGdJLS5aaoxpKHJyd3HNgvg_RheMJUIjfqkfkCuPxh8IIohW9fwP788wcgUHntJjflWhu8gFkn-m08MtbyCgjdjr965y9hB7NCxuFlAbFEEaZ-cFxjAKUzxgK4nXBbC35-I2pnfeULf4ITNOnN6OTLB1JMR4Ah3blJYBGEMpxTWTdj68hEHCm02PJYYXlr-fMcMNG-PbpEh2RKld4X5ytyUmafXaxb-DMFghR3CmLnSj2ISYqIF5pPIE6Ssz\"}",
+      "sealed": "{\"v\":1,\"e\":\"BF7dg1PshmcD0waQVjJsyQkRzX0YbUhX0slvLy2hqWzhkdYmVxoTVKYobMtiyqGB8QaVgVINtBLradVTRxLSqYE\",\"i\":\"DfMPdCqr9BlzKapT\",\"c\":\"eF_lW6EztoFQ17Iz1jgnHyGtOmGb3yYBH2FJ_fulDQ2T8ZAZPWtKCYE_rEKJCi5TBId7UGLGEWa3TpwF6FN0PUUIAiwr-vhA0JRGFPSXSXVhaBpoQsBKnTQD37ampv5fblsQcGV_v1btBktP1CzhsVSW3UfLvXwPVfxK3hSO9rsg7ubWJJqp8VIH5aEAguXsXWf-7aR-b4lr9CYCLykb0FE4elK86flauGM4yeuJ2FbJYejH1VQyYpJqKy9nM2wtwMtmP8qBxH3ZKanRT_79ETm2jaGVNhudGB6izOpTwdoECtDXjOlCu24PTjLxWLlfsFRx97RUnvUjLxVRND0IjASLHmcNQwcTnB7LOpA1FF53j20duSpjIEsCdJA9FHEuafPeVE7weeyf1qjlWfaes3jNxVnLqxSjlFh1bLrnrARxb1l2RuvpbE685Ntci_Mlt0fjkkZcMQ5fcXB07zFMe5sKFYXm-D_5tN13zb_xe-ufHAdHh2SY3X5GIYZFkbdA2_C2lCa_x3uQFzo0k-7Pl1w6yrc_d-m1UQDSDfDI-NuL24taNvVJp3KtN6cLFmsfFyPzHL14o5kHExS2ZL_a96Jnp4VrRbNrnoJtEet_MoerShkbquXUOS8-WODbbimIb7XJGvDg1-Cm\"}",
       "ep": "qbK9z__Lo9mfRWSf",
-      "at": 1795204007243,
+      "at": 1795243207864,
       "target": 15000000,
-      "confirmed": 1795207490874,
+      "confirmed": 1795243212883,
       "armed": true,
-      "watchFrom": 1795204007243,
+      "watchFrom": 1795243207864,
       "firedAt": 0
     },
     "bm9doDvpEKl6iU69OyS7sZ": {
